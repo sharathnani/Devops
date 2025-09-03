@@ -1,0 +1,42 @@
+name: Trivy Security Scan
+
+on:
+  push:                         # Run on every commit push
+    branches: [ "**" ]          # All branches
+  pull_request:                 # Run on every PR
+    branches: [ "**" ]
+
+jobs:
+  trivy-scan:
+    name: Run Trivy Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update -y
+          sudo apt-get install -y trivy
+
+      # 🔹 Scan the repo source code for vulnerabilities (IaC, config, secrets, etc.)
+      - name: File System (Repo) Scan
+        run: trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+
+      # 🔹 Dependency scan (if Node.js / Python / etc.)
+      - name: Dependency Scan
+        run: trivy fs --scanners vuln --exit-code 1 --severity HIGH,CRITICAL .
+
+      # 🔹 Container scan (if Dockerfile exists)
+      - name: Build Docker Image
+        if: hashFiles('Dockerfile') != ''
+        run: docker build -t myapp:latest .
+
+      - name: Trivy Docker Image Scan
+        if: hashFiles('Dockerfile') != ''
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL myapp:latest
