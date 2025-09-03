@@ -1,0 +1,24 @@
+name: CI flow
+on:
+  push:
+    branch: [main]
+  pull_request:
+    branch: [main]  
+jobs:
+    build-and-test:
+      runs-on: ubuntu-latest
+    steps:
+      - name: Git check out
+        uses: actions/checkout@v3
+      - name: Git set up node.js 
+        uses: actions/setup-node.js@v3
+        with:
+          node-version: '18.X'
+      - name: install dependies
+        run: npm install
+      - name: check the syntax
+        run: npm run lint
+      - name: build 
+        run: npm build
+      - name: run test cases   
+        run: npm test   
